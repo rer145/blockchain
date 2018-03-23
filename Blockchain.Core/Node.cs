@@ -7,13 +7,9 @@ using System.Threading.Tasks;
 
 namespace Blockchain.Core
 {
-	public class Transaction
+	public class Node
 	{
-		public string Sender { get; set; }
-		public string Recipient { get; set; }
-		public decimal Amount { get; set; }
-
-		public Transaction() { }
+		public string Address { get; set; }
 
 		public override string ToString()
 		{

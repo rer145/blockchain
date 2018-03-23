@@ -23,7 +23,6 @@ namespace Blockchain.Core
 
 		public override string ToString()
 		{
-			//return base.ToString();
 			return JsonConvert.SerializeObject(this);
 		}
 	}

@@ -15,11 +15,13 @@ namespace Blockchain.Core
 		}
 		public List<Transaction> CurrentTransactions { get; set; }
 		public List<Block> Chain { get; set; }
+		public HashSet<Node> Nodes { get; set; }
 
 		public Blockchain()
 		{
 			this.CurrentTransactions = new List<Transaction>();
 			this.Chain = new List<Block>();
+			this.Nodes = new HashSet<Node>();
 
 			NewBlock(100, "1");
 		}
@@ -79,10 +81,6 @@ namespace Blockchain.Core
 
 		public static bool ValidProof(int lastProof, int currentProof)
 		{
-			//guess = f'{last_proof}{proof}'.encode()
-			//guess_hash = hashlib.sha256(guess).hexdigest()
-			//return guess_hash[:4] == "0000"
-
 			string guess = lastProof.ToString() + currentProof.ToString();
 			string guessHash = SHA256Hash.Get(guess);
 			return guessHash.Substring(0, 4) == "0000";
@@ -99,9 +97,73 @@ namespace Blockchain.Core
 			return block;
 		}
 
+		public void RegisterNode(Node node)
+		{
+			//validate node.Address?
+			this.Nodes.Add(node);
+		}
+
+		public bool ValidChain()
+		{
+			return this.ValidChain(this.Chain);
+		}
+
+		public bool ValidChain(List<Block> chain)
+		{
+			Block tempBlock = this.Chain.FirstOrDefault();
+			int currentIndex = 0;
+
+			while (currentIndex < this.Chain.Count)
+			{
+				Block block = this.Chain[currentIndex];
+
+				if (block.PreviousHash != Hash(tempBlock))
+					return false;
+				if (!ValidProof(tempBlock.Proof, block.Proof))
+					return false;
+
+				tempBlock = block;
+				currentIndex += 1;
+			}
+
+			return true;
+		}
+
+		public bool ResolveConflicts()
+		{
+			HashSet<Node> neighbors = this.Nodes;
+			List<Block> newChain = null;
+			int maxLength = this.Chain.Count;
+
+			foreach (Node node in neighbors)
+			{
+				//api get chain from node
+				string response = node.Address + "/chain";
+				if (!String.IsNullOrEmpty(response))
+				{
+					int length = 0; //response length
+					List<Block> chain = null; //response chain
+
+					if (length > maxLength && ValidChain(chain))
+					{
+						maxLength = length;
+						newChain = chain;
+					}
+				}
+			}
+
+			//if we find a newer, longer chain, replace ours
+			if (newChain != null)
+			{
+				this.Chain = newChain;
+				return true;
+			}
+
+			return false;
+		}
+
 		public override string ToString()
 		{
-			//return base.ToString();
 			return JsonConvert.SerializeObject(this);
 		}
 	}
